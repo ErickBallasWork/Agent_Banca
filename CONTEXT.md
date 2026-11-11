@@ -1,33 +1,168 @@
-# Role and Objective
-Act as a Principal Enterprise AI Solutions Architect and Senior Software Engineer. Your task is to design, structure, and generate production-ready code, documentation, and agent specifications for an autonomous financial reconciliation and accounting audit agent tailored for a banking environment running on Microsoft infrastructure (Azure, Power Platform, M365).
+# Agent_Banca: Financial Reconciliation PoC
 
-## Cognitive Framework: Reason, Execute, Reflect, and Iterate
-You must act as an advanced reasoning agent. For every task or component you generate, you must follow this internal loop BEFORE providing the final output:
-1. **PLAN:** Analyze the request. What are the specific financial rules? Which Azure/Microsoft components are needed? What is the expected input/output?
-2. **DRAFT:** Create a mental or scratchpad draft of the code, JSON structures, or Markdown files.
-3. **REFLECT & AUDIT:** Critically evaluate your draft against the GH-300 standards, security constraints, and the specific banking logic (e.g., "Did I account for the gateway fee correctly?", "Is the JSON output deterministic?", "Did I hardcode sensitive data?").
-4. **ITERATE (Self-Correction):** If your reflection reveals ANY flaw, inefficiency, or deviation from the instructions, you MUST rewrite and fix the component internally before presenting it to the user. 
+## Project purpose
 
-*Show your reasoning process briefly in a `<thought_process>` block before delivering the final artifacts.*
+This repository contains a hybrid reconciliation proof of concept for
+payment-gateway reports, general-ledger records, and central-bank statements
+to identify discrepancies and evidence-backed orphan transactions, then
+produce verifiable analyst reports. The current proof of concept (PoC) uses
+synthetic bank, payment-gateway, and general-ledger records. Pandas performs
+deterministic matching first; the AI model receives only unresolved records in
+bounded batches. The PoC does not yet ingest official central-bank formats and
+is not a production banking or AML decision system.
 
-## Core Architectural & Engineering Standards (GH-300 & Enterprise Aligned)
-When generating solutions, explanations, or code, you must strictly adhere to the following principles:
-1. **Context Crafting & Prompt Engineering:** Design modular, explicit system prompts and secondary skill files (`.md`) using clear boundaries, zero-shot/few-shot constraints, and deterministic response formats (e.g., structured JSON). Avoid vague instructions.
-2. **Responsible AI & Governance:** Implement strict guardrails. Financial data must never be used to train public models. Enforce least-privilege permissions, human-in-the-loop validation for discrepancies, and robust audit logging (compatible with Microsoft Purview).
-3. **Enterprise Microsoft Ecosystem Integration:** Align data flows, storage, and orchestration with Azure services (Azure Blob Storage, Azure AI Document Intelligence, Azure OpenAI / Semantic Kernel, Azure SQL/Dataverse, and Power Automate / Logic Apps).
-4. **Modularity & Maintainability:** Separate the agent's behavior and business rules (defined via Markdown files and skill modules) from the execution pipeline (implemented cleanly in Python or TypeScript).
+## Current architecture
 
-## Task Context
-The user wants to implement an **Autonomous Accounting Reconciliation and Audit Agent** that:
-- Ingests and processes multi-source financial records (Central Bank statements, Payment Gateway transaction reports, and ERP General Ledger exports).
-- Performs exact matching and intelligent fuzzy matching (handling gateway commissions and timing/weekend settlement delays).
-- Isolates and flags "Orphan Transactions" or financial discrepancies.
-- Outputs clean structured datasets ready for Power BI dashboards and Microsoft Dataverse ingestion.
+- `src/orchestrator.py` is the hybrid entry point. It loads the JSON source
+  reports into Pandas DataFrames, applies deterministic AML screening, matches
+  bank-to-ledger records on exact payout ID, currency, amount, and UTC date,
+  and matches gateway net settlements using the documented per-transaction fee
+  and 48-hour timing rules. Fully matched and AML-quarantined payouts are
+  excluded from the exceptions queue. The OpenAI-compatible model receives
+  only unresolved, non-quarantined records, in batches of at most 20, and is
+  prohibited from returning deterministic matches or AML alerts. Its exception
+  reports are schema- and consistency-validated before consolidation. Final
+  reports are saved as JSON in `output/`.
+- `data/poc_bank.json`, `data/poc_gateway.json`, and `data/poc_ledger.json` are
+  the fixtures used by the orchestrator.
+- `agent_config/system_prompt.md` defines the auditor role and JSON output
+  contract. `agent_config/skills/` holds fee/timing and AML instructions.
+- `agent_config/skills/reconciliation_analysis.md` documents the current
+  runtime input schema, evidence-first workflow, and batch-completeness limits;
+  `src/orchestrator.py` includes it in the runtime model context.
+- `.github/copilot-instructions.md` defines repository-wide development
+  standards for Copilot. `.github/agents/conciliacion-auditoria.agent.md`
+  defines the VS Code Copilot agent for reconciliation engineering; it is
+  separate from the runtime auditor prompt in `agent_config/`.
+- `.github/skills/reconciliation-engineering/SKILL.md` is the workspace
+  Agent Skill for engineering tasks. VS Code discovers project skills from
+  `.github/skills/` and loads relevant skills on demand. It links this context,
+  the implementation, tests, and runtime model instructions; the latter are
+  not themselves Copilot Agent Skills.
+- `docs/agent-architecture.md` explains the separate VS Code Copilot and
+  application-auditor flows, their context sources, and how each is executed.
+- `docs/compliance_aml_rules.md` is the illustrative AML knowledge base used by
+  the AML skill.
+- `.github/workflows/ci.yml` runs offline validation and unit tests. CI must
+  never require API keys or send fixture data to an external model.
 
-## Your Deliverables:
-When the user requests components of this agent, provide:
-1. **Markdown-based agent definitions** (`system_prompt.md`, skill configuration files).
-2. **Production-grade pipeline implementation** (e.g., Python orchestration scripts utilizing Azure SDKs or semantic kernel patterns).
-3. **Security and compliance considerations** mapped to enterprise banking standards.
+## Scope and limitations
 
-**Acknowledge these instructions by summarizing your cognitive loop and stating your readiness to generate the specific files or architecture modules requested next.**
+- The current fixtures contain only 6 bank records, 7 gateway records, and 7
+  ledger records. They do not establish production-scale throughput.
+- Pandas loads each complete JSON report into memory; the model calls are
+  limited to at most 20 records, but this is a record-count limit, not a token
+  limit. Long descriptions or unusually large records may still exceed a
+  provider's context or request limits. Ingestion is not streaming and has no
+  database-backed checkpointing or retry workflow.
+- Deterministic matching is limited to the explicit payout, currency, amount,
+  UTC-date, fee, and settlement-time rules implemented in the orchestrator.
+  Other exception interpretation remains probabilistic and requires analyst
+  review.
+- The output is persisted as JSON, but there is no analyst-facing interface,
+  CSV export, or workflow for reviewing and approving findings.
+- Before production use, benchmark representative data volumes, establish
+  accounting-specific rules and controls, and add operational monitoring,
+  access control, and analyst review tooling.
+
+## Run locally
+
+1. Use Python 3.11 or newer.
+2. Install dependencies: `python -m pip install -r requirements.txt`.
+3. Copy `.env.example` to `.env`.
+4. Choose one endpoint in `.env`:
+   - **Local:** start Ollama and make the configured model available. Defaults
+     use `http://localhost:11434/v1` and `llama3.1`.
+   - **Remote GroqCloud:** create an account/API key, then replace the local
+     endpoint, key, and model with the commented Groq example in `.env.example`
+     and set `ALLOW_REMOTE_ENDPOINT=true`. `openai/gpt-oss-20b` is listed by
+     Groq as supporting structured output, but free access, rate limits, and
+     model availability depend on the account and may change.
+5. Run `python src/orchestrator.py` on the machine that has the source reports.
+
+The client uses the OpenAI-compatible Chat Completions API. `OPENAI_BASE_URL`,
+`OPENAI_API_KEY`, and `OPENAI_MODEL` configure the endpoint and model. Remote
+endpoints are refused unless `ALLOW_REMOTE_ENDPOINT=true` is explicitly set.
+For remote inference, only unresolved, non-quarantined exception records are
+sent, but those records still leave the machine. Do not send real financial
+data unless the provider's privacy, retention, security, and contractual
+controls have been reviewed and approved. Free-tier usage is not guaranteed to
+be sufficient for bulk processing.
+
+## Privacy and compliance boundaries
+
+- The default endpoint is loopback-only; data is not intentionally sent to a
+  hosted provider by default. Local execution alone is not a guarantee of
+  zero retention: review local model, server, and application logs.
+- Use synthetic fixtures in development and CI. Never put secrets in source
+  control; `.env` is ignored by Git.
+- AML thresholds are illustrative test rules, not legal advice or a finding of
+  wrongdoing. Alerts require a qualified human compliance review.
+- The model must not initiate payments, post ledger entries, block accounts,
+  or file regulatory reports.
+- Keep financial arithmetic and required controls deterministic and validate
+  the model output before downstream use. The model's JSON response is not a
+  substitute for independent production-grade reconciliation controls.
+
+## Development and validation
+
+Run the offline test suite with:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+CI checks Python syntax, fixture JSON, and unit tests without calling Ollama,
+Groq, or any other model endpoint.
+
+To use alternate reports with the same expected JSON filenames, set
+`RECONCILIATION_DATA_DIR`. Set `AUDIT_OUTPUT_DIR` to change the report
+destination. The default report directory is `output/`.
+
+The product objective is to reconcile payment-gateway reports, ledger records,
+and central-bank statements; identify discrepancies and evidence-backed
+orphans; and give analysts verifiable reports. Current implementation remains
+at synthetic PoC scale: deterministic matching and AML screening run locally,
+unresolved exceptions may be sent to a configured model, and a JSON report is
+persisted for later review. It is not a mass-processing or analyst
+case-management solution. The requirements status below describes current
+implementation, not business or compliance approval:
+
+- The only available inputs are three small synthetic JSON fixtures:
+  `data/poc_bank.json` (6 records), `data/poc_gateway.json` (7), and
+  `data/poc_ledger.json` (7). No specific bank, payment gateway, ledger
+  vendor, central bank institution/jurisdiction, or official external file
+  format has been selected. In particular, no central-bank statement adapter
+  is implemented.
+- The fixture fields are documented by their contents and
+  `SOURCE_FIELDS` in `src/orchestrator.py`. A `payout_id` is the current
+  cross-source key. Commission, status, and a separate settlement reference
+  are not input fields in the current schema.
+- The runtime auditor's knowledge is a set of Markdown documents loaded and
+  concatenated by `load_markdown_context()`; it is not a vector database, RAG
+  index, trained model, or institution-specific knowledge system. The model
+  receives unresolved records separately in batches, not the complete source
+  reports.
+- Current code matches bank-to-ledger on payout ID, currency, amount, and UTC
+  calendar date; bank-to-gateway uses the hard-coded fee and settlement-window
+  rules described above. These are PoC implementation rules, not user-approved
+  accounting policy. Cross-currency conversion is not supported.
+- Reports are timestamped JSON files written locally to `output/`. The
+  analyst workflow beyond later/manual report review, retention, and
+  production storage/access controls have not been approved or implemented.
+- Remote model use is opt-in and guarded by `ALLOW_REMOTE_ENDPOINT`; no
+  approval to send real financial data to an external model has been given.
+- AML thresholds are illustrative only and require human review. They are not
+  approved jurisdiction-specific rules.
+- Production volumes, run frequency, performance/memory/concurrency targets,
+  representative benchmark data, and formal acceptance criteria remain
+  unspecified. Automated retries, checkpoint recovery, and idempotent
+  execution behavior are also not established as requirements.
+
+When answering or implementing against this product objective, use these known
+facts to avoid asking already-answered questions. Ask for missing decisions
+only when they affect the requested change. The user has stated the desired
+source categories and outcome; the institution, official formats, accounting
+rules, scale targets, operational controls, and acceptance criteria remain
+unconfirmed. Do not interpret suggestions made during requirements discovery
+as approved policy unless the user explicitly confirms them.
