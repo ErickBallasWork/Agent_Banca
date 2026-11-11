@@ -48,7 +48,7 @@ is not a production banking or AML decision system.
 
 ## Scope and limitations
 
-- The current fixtures contain only 6 bank records, 7 gateway records, and 7
+- The current fixtures contain 12 bank records, 11 gateway records, and 13
   ledger records. They do not establish production-scale throughput.
 - Pandas loads each complete JSON report into memory; the model calls are
   limited to at most 20 records, but this is a record-count limit, not a token
@@ -117,7 +117,11 @@ Groq, or any other model endpoint.
 
 To use alternate reports with the same expected JSON filenames, set
 `RECONCILIATION_DATA_DIR`. Set `AUDIT_OUTPUT_DIR` to change the report
-destination. The default report directory is `output/`.
+destination. Inputs may use the expected `.json` filenames or `.txt` filenames
+whose contents are valid JSON with the same schema; `.txt` does not mean CSV or
+arbitrary plain text. If both extensions exist for a source, `.json` takes
+precedence. See `data/txt_samples/` for a small synthetic example that runs
+without unresolved records or a model call.
 
 The product objective is to reconcile payment-gateway reports, ledger records,
 and central-bank statements; identify discrepancies and evidence-backed
@@ -129,8 +133,11 @@ case-management solution. The requirements status below describes current
 implementation, not business or compliance approval:
 
 - The only available inputs are three small synthetic JSON fixtures:
-  `data/poc_bank.json` (6 records), `data/poc_gateway.json` (7), and
-  `data/poc_ledger.json` (7). No specific bank, payment gateway, ledger
+  `data/poc_bank.json` (12 records), `data/poc_gateway.json` (11), and
+  `data/poc_ledger.json` (13). They include exact and fee matches, aggregated
+  gateway payouts, a one-cent fee discrepancy, UTC-date and currency
+  discrepancies, a late settlement, an existing unmatched ledger record, and
+  an AML threshold-boundary example. No specific bank, payment gateway, ledger
   vendor, central bank institution/jurisdiction, or official external file
   format has been selected. In particular, no central-bank statement adapter
   is implemented.

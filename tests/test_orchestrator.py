@@ -109,8 +109,95 @@ class OrchestratorTests(unittest.TestCase):
         self.assertIn("aml_fraud_detection.md", context)
         self.assertIn("compliance_aml_rules.md", context)
         self.assertEqual(
+            {
+                source_name: len(fixture["records"])
+                for source_name, fixture in self.fixture_data.items()
+            },
+            {"poc_bank": 12, "poc_gateway": 11, "poc_ledger": 13},
+        )
+        self.assertEqual(
             set(self.fixture_data),
             {"poc_bank", "poc_gateway", "poc_ledger"},
+        )
+
+    def test_text_extension_files_with_json_content_are_supported(self):
+        with tempfile.TemporaryDirectory() as input_dir:
+            for source_name, fixture in self.fixture_data.items():
+                path = Path(input_dir) / f"{source_name}.txt"
+                path.write_text(json.dumps(fixture), encoding="utf-8")
+
+            loaded = orchestrator.load_fixture_data(input_dir)
+
+        self.assertEqual(loaded, self.fixture_data)
+
+    def test_txt_sample_runs_without_calling_the_model(self):
+        sample_dir = Path(orchestrator.ROOT_DIR) / "data" / "txt_samples"
+        fixture_data = orchestrator.load_fixture_data(sample_dir)
+        unused_client = SimpleNamespace(
+            chat=SimpleNamespace(
+                completions=SimpleNamespace(create=unittest.mock.Mock())
+            )
+        )
+
+        with tempfile.TemporaryDirectory() as output_dir:
+            report = orchestrator.run_audit(
+                fixture_data=fixture_data,
+                output_dir=output_dir,
+                llm_client=unused_client,
+            )
+
+        unused_client.chat.completions.create.assert_not_called()
+        self.assertEqual(len(report["exact_matches"]), 2)
+        self.assertEqual(len(report["fuzzy_fee_matches"]), 2)
+        self.assertEqual(report["reconciliation_exceptions"], [])
+        self.assertEqual(report["orphan_transactions"], [])
+
+    def test_expanded_fixtures_cover_reconciliation_edge_cases(self):
+        frames = orchestrator.load_dataframes(self.fixture_data)
+        aml_alerts = orchestrator.detect_aml_alerts(frames)
+        result = orchestrator.run_deterministic_fast_pass(frames, aml_alerts)
+
+        exact_payouts = {item.payout_id for item in result["exact_matches"]}
+        fee_matches = {
+            item.payout_id: item for item in result["fuzzy_fee_matches"]
+        }
+        queued_records = {
+            (item["source"], item["record_id"])
+            for item in result["exception_queue"]
+        }
+
+        self.assertIn("POC-PAYOUT-MULTI-GATEWAY", exact_payouts)
+        self.assertIn("POC-PAYOUT-LATE-SETTLEMENT", exact_payouts)
+        self.assertIn("POC-PAYOUT-AML-BOUNDARY", exact_payouts)
+        self.assertIn("POC-PAYOUT-MULTI-GATEWAY", fee_matches)
+        self.assertEqual(
+            fee_matches["POC-PAYOUT-MULTI-GATEWAY"].record_ids,
+            ["POC-BANK-007", "POC-GW-008", "POC-GW-009"],
+        )
+        self.assertIn("POC-PAYOUT-FEE-DISCREPANCY", exact_payouts)
+        self.assertNotIn("POC-PAYOUT-FEE-DISCREPANCY", fee_matches)
+        self.assertIn(
+            ("poc_gateway", "POC-GW-010"),
+            queued_records,
+        )
+        self.assertNotIn("POC-PAYOUT-DATE-DISCREPANCY", exact_payouts)
+        self.assertIn(
+            ("poc_bank", "POC-BANK-009"),
+            queued_records,
+        )
+        self.assertNotIn("POC-PAYOUT-CURRENCY-DISCREPANCY", exact_payouts)
+        self.assertIn(
+            ("poc_ledger", "POC-LEDGER-010"),
+            queued_records,
+        )
+        self.assertNotIn("POC-PAYOUT-LATE-SETTLEMENT", fee_matches)
+        self.assertIn(
+            ("poc_gateway", "POC-GW-011"),
+            queued_records,
+        )
+        self.assertNotIn(
+            "POC-PAYOUT-AML-BOUNDARY",
+            {payout_id for alert in aml_alerts for payout_id in alert.payout_ids},
         )
 
     def test_default_client_is_configured_for_local_ollama(self):
@@ -162,7 +249,22 @@ class OrchestratorTests(unittest.TestCase):
         self.assertNotIn("POC-GW-004", request["messages"][1]["content"])
         self.assertEqual(
             {item["payout_id"] for item in report["exact_matches"]},
-            {"POC-PAYOUT-EXACT", "POC-PAYOUT-FEE"},
+            {
+                "POC-PAYOUT-EXACT",
+                "POC-PAYOUT-FEE",
+                "POC-PAYOUT-MULTI-GATEWAY",
+                "POC-PAYOUT-FEE-DISCREPANCY",
+                "POC-PAYOUT-LATE-SETTLEMENT",
+                "POC-PAYOUT-AML-BOUNDARY",
+            },
+        )
+        self.assertEqual(
+            {item["payout_id"] for item in report["fuzzy_fee_matches"]},
+            {
+                "POC-PAYOUT-EXACT",
+                "POC-PAYOUT-FEE",
+                "POC-PAYOUT-MULTI-GATEWAY",
+            },
         )
         self.assertEqual(
             {item["rule_id"] for item in report["compliance_alerts"]},

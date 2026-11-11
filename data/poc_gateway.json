@@ -49,6 +49,34 @@
       "transaction_at": "2026-10-08T09:25:00Z",
       "gross_amount": "4000.00",
       "currency": "USD"
+    },
+    {
+      "gateway_id": "POC-GW-008",
+      "payout_id": "POC-PAYOUT-MULTI-GATEWAY",
+      "transaction_at": "2026-10-10T10:00:00Z",
+      "gross_amount": "100.00",
+      "currency": "USD"
+    },
+    {
+      "gateway_id": "POC-GW-009",
+      "payout_id": "POC-PAYOUT-MULTI-GATEWAY",
+      "transaction_at": "2026-10-10T10:05:00Z",
+      "gross_amount": "50.00",
+      "currency": "USD"
+    },
+    {
+      "gateway_id": "POC-GW-010",
+      "payout_id": "POC-PAYOUT-FEE-DISCREPANCY",
+      "transaction_at": "2026-10-10T12:00:00Z",
+      "gross_amount": "100.00",
+      "currency": "USD"
+    },
+    {
+      "gateway_id": "POC-GW-011",
+      "payout_id": "POC-PAYOUT-LATE-SETTLEMENT",
+      "transaction_at": "2026-10-10T09:00:00Z",
+      "gross_amount": "100.00",
+      "currency": "USD"
     }
   ]
 }

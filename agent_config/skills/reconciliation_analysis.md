@@ -23,6 +23,13 @@ the loader converts supported numeric/string values to decimal and rejects
 sub-cent precision. Timestamps are parsed as UTC. Bank account/customer fields
 and descriptive fields are not a cross-source matching key.
 
+The current sample fixtures also include synthetic cases for aggregated
+gateway transactions, a one-cent fee discrepancy, a UTC business-date
+mismatch, a same-reference currency mismatch, a settlement outside the
+configured window, an unmatched ledger row, and a transaction exactly at the
+illustrative AML threshold. These scenarios exercise the current PoC; they are
+not additional approved accounting policies.
+
 ## What the model receives
 
 The application performs its deterministic matching and illustrative AML

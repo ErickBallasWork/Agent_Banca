@@ -40,8 +40,10 @@ python src/orchestrator.py
 
 Secuencia actual:
 
-1. Lee `.env` y carga tres reportes JSON desde `data/` (o desde
-   `RECONCILIATION_DATA_DIR`): banco, pasarela y libro mayor.
+1. Lee `.env` y carga tres reportes desde `data/` (o desde
+   `RECONCILIATION_DATA_DIR`): banco, pasarela y libro mayor. Acepta nombres
+   `.json` o `.txt`, pero el contenido de ambos debe ser JSON válido; prefiere
+   `.json` si existen las dos extensiones.
 2. Valida identificadores, importes, monedas y marcas de tiempo, y construye
    DataFrames en memoria.
 3. Ejecuta las reglas deterministas implementadas en
@@ -98,3 +100,17 @@ si solo que no haya persistencia en logs.
 No se deben confundir los prompts runtime de `agent_config/` con la
 configuracion de Copilot en `.github/`, ni describir el PoC como sistema de
 produccion o de procesamiento masivo.
+
+## Probar con archivos `.txt`
+
+`data/txt_samples/` contiene tres ejemplos sintéticos con extension `.txt` y
+contenido JSON. Para ejecutarlos desde la raiz del repositorio:
+
+```bash
+RECONCILIATION_DATA_DIR=data/txt_samples python src/orchestrator.py
+```
+
+Ese conjunto de ejemplo tiene todas sus transacciones conciliadas mediante las
+reglas deterministas actuales; por eso guarda un reporte sin requerir Ollama ni
+otro endpoint de modelo. Estos archivos no son texto libre, CSV ni formatos
+oficiales de una institución.

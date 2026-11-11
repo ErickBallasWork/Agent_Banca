@@ -94,7 +94,14 @@ def load_fixture_data(data_dir=None):
     ).expanduser()
     data = {}
     for name in SOURCE_FIELDS:
-        path = fixture_dir / f"{name}.json"
+        json_path = fixture_dir / f"{name}.json"
+        text_path = fixture_dir / f"{name}.txt"
+        path = json_path if json_path.is_file() else text_path
+        if not path.is_file():
+            raise FileNotFoundError(
+                f"Missing {name} input; expected {json_path.name} or "
+                f"{text_path.name} in {fixture_dir}."
+            )
         with path.open("r", encoding="utf-8") as file:
             fixture = json.load(file)
         if not isinstance(fixture, dict) or not isinstance(
