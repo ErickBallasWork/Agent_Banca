@@ -39,8 +39,45 @@ is not a production banking or AML decision system.
   `.github/skills/` and loads relevant skills on demand. It links this context,
   the implementation, tests, and runtime model instructions; the latter are
   not themselves Copilot Agent Skills.
+- `src/copilot_app.py` is a local Streamlit interface branded **Agent
+  Concilation** for testing the custom VS Code Copilot agent.
+  `src/copilot_backend.py` uses the official Copilot SDK
+  for CLI-based authentication checks and persistent chat sessions; it loads
+  the agent and workspace skill from `.github/`. This test interface is
+  separate from `src/orchestrator.py`, does not run reconciliation, and does
+  not use `OPENAI_MODEL`, Ollama, or `ALLOW_REMOTE_ENDPOINT`. Chat replies are
+  taken from the Copilot SDK's final response event; chunked replies are
+  reconstructed only from events with that response's message ID rather than
+  inferred from an unrelated transcript entry.
+- `src/copilot_app.py` also separates two upload workflows: one `.txt` or
+  `.json` file can be sent as context to the Copilot agent for an explanation,
+  or three source files can be passed to the existing reconciliation
+  orchestrator. Each upload is limited to 1 MiB. Reconciliation uploads must
+  contain the existing `records` JSON structure; `.txt` is not CSV or free
+  text. The three uploaded files are staged temporarily and the report is
+  offered as an explanatory PDF with section definitions, summary counts, and
+  source-record references; the detailed JSON remains available for download.
+  PDF explanations use fixed application text, not model-generated analysis.
+  Unresolved records may be sent to the configured OpenAI-compatible endpoint
+  under the existing `ALLOW_REMOTE_ENDPOINT` guard.
+- The Copilot chat accepts a single `.txt` or `.json` attachment directly in
+  the chat composer. Users can toggle the two workspace skills; the SDK passes
+  unchecked skills through `disabled_skills` when creating or resuming chat
+  turns. Toggle state controls skill availability, not evidence that a skill
+  was actually activated for a response.
+- The Streamlit workspace presents a `Fuentes` panel for Copilot connection,
+  sessions, and skill controls, a central conversation with an attachment
+  composer, and a `Studio` panel that explains the product goal and PoC limits.
+  Reconciliation remains a separate `Conciliar reportes` view.
+- The Streamlit UI uses the workspace `ui-ux-design-system` skill and
+  `src/assets/global.css` as its centralized visual-token and component-style
+  source. The base colors in `.streamlit/config.toml` align with these tokens.
+- Copilot chat requests include a project-scope instruction and uploaded file
+  contents are identified as untrusted reference data. This guides the model
+  to stay within Agent_Banca topics but is not a deterministic topic filter.
 - `docs/agent-architecture.md` explains the separate VS Code Copilot and
-  application-auditor flows, their context sources, and how each is executed.
+  application-auditor flows, their context sources, and how each is executed,
+  including the local SDK test interface.
 - `docs/compliance_aml_rules.md` is the illustrative AML knowledge base used by
   the AML skill.
 - `.github/workflows/ci.yml` runs offline validation and unit tests. CI must
@@ -59,8 +96,10 @@ is not a production banking or AML decision system.
   UTC-date, fee, and settlement-time rules implemented in the orchestrator.
   Other exception interpretation remains probabilistic and requires analyst
   review.
-- The output is persisted as JSON, but there is no analyst-facing interface,
-  CSV export, or workflow for reviewing and approving findings.
+- The output is persisted as JSON, but there is no reconciliation analyst
+  interface, CSV export, or workflow for reviewing and approving findings.
+  The local Copilot test interface is a developer smoke-test tool, not an
+  analyst case-management UI.
 - Before production use, benchmark representative data volumes, establish
   accounting-specific rules and controls, and add operational monitoring,
   access control, and analyst review tooling.
@@ -88,6 +127,37 @@ sent, but those records still leave the machine. Do not send real financial
 data unless the provider's privacy, retention, security, and contractual
 controls have been reviewed and approved. Free-tier usage is not guaranteed to
 be sufficient for bulk processing.
+
+## Probar el agente personalizado de Copilot
+
+This is a separate developer-only chat path; it does not run
+`src/orchestrator.py` or prove reconciliation behavior.
+
+1. Install the project dependencies as above.
+2. Authenticate with Copilot CLI in a terminal by running `copilot` and
+   completing the sign-in flow. The web interface never accepts or stores
+   credentials or tokens.
+3. From the repository root, run:
+
+   ```bash
+   streamlit run src/copilot_app.py
+   ```
+
+4. In the page, check the Copilot authentication status, acknowledge the
+   service-processing notice, and create a conversation. Existing conversations
+   created by this interface can be listed and resumed.
+
+The interface selects the custom agent in
+`.github/agents/conciliacion-auditoria.agent.md`, loads workspace skills from
+`.github/skills/`, and restricts available tools to `view`, `grep`, and `glob`.
+It does not provide shell or editing tools and the Streamlit server binds to
+loopback by default. The SDK uses the Copilot CLI identity and its configured
+model, not `OPENAI_API_KEY`, `OPENAI_MODEL`, or the Ollama endpoint. The SDK
+persists session transcripts locally according to its configuration. Messages
+and any repository content the agent reads may be processed by Copilot under
+the user's account policies; use synthetic data only. This separate Copilot
+path is not governed by the application's `ALLOW_REMOTE_ENDPOINT` privacy
+guard.
 
 ## Privacy and compliance boundaries
 
@@ -122,6 +192,17 @@ whose contents are valid JSON with the same schema; `.txt` does not mean CSV or
 arbitrary plain text. If both extensions exist for a source, `.json` takes
 precedence. See `data/txt_samples/` for a small synthetic example that runs
 without unresolved records or a model call.
+
+The larger fixtures in `data/poc_bank.json`, `data/poc_gateway.json`, and
+`data/poc_ledger.json` cover amount/date/currency discrepancies, multi-record
+gateway settlements, fee-window cases, an unmatched ledger record, and
+illustrative AML scenarios. The interactive reconciliation page may call the
+configured model for unresolved exceptions; use the offline orchestrator tests
+to exercise these cases without a model endpoint:
+
+```bash
+python -m unittest discover -s tests -p test_orchestrator.py -v
+```
 
 The product objective is to reconcile payment-gateway reports, ledger records,
 and central-bank statements; identify discrepancies and evidence-backed

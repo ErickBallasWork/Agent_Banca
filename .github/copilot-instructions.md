@@ -9,6 +9,9 @@
   `reconciliation-engineering` de `.github/skills/`. Las skills se descubren
   desde esa ubicacion y se cargan bajo demanda; el agente debe invocarla en
   tareas pertinentes, no asumir que sus instrucciones ya estan en contexto.
+- Para cambios de UI/UX, consulta la skill `ui-ux-design-system` de
+  `.github/skills/` y centraliza los estilos del app Streamlit en
+  `src/assets/global.css`.
 - Distingue las instrucciones de desarrollo de Copilot de
   `agent_config/system_prompt.md`: este ultimo es el contrato del modelo en
   tiempo de ejecucion, no una especificacion para modificar el codigo.

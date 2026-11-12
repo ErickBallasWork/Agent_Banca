@@ -82,6 +82,80 @@ puede sacar esos registros de la maquina; no se deben usar datos financieros
 reales sin aprobacion y controles adecuados. Ollama local tampoco garantiza por
 si solo que no haya persistencia en logs.
 
+## 3. Interfaz local para probar el agente personalizado
+
+Para probar desde el navegador el agente de desarrollo sin confundirlo con el
+auditor de excepciones, ejecuta desde la raiz:
+
+```bash
+streamlit run src/copilot_app.py
+```
+
+La interfaz se muestra como **Agent Concilation**; los nombres internos del
+repositorio y del contexto de Copilot siguen siendo `Agent_Banca`.
+
+La interfaz usa `src/copilot_backend.py` y el SDK oficial `github-copilot-sdk`.
+Comprueba la autenticacion de Copilot CLI sin recibir tokens del navegador,
+crea/lista/reanuda sesiones persistidas por el SDK, y carga el agente y skills
+del workspace. El modelo es el configurado por Copilot CLI; no es el modelo
+`OPENAI_MODEL` de la aplicacion ni implica que `llama3.1` se use en este chat.
+La respuesta de cada turno se obtiene del evento final devuelto por el SDK.
+Si el SDK divide la respuesta en partes, se reconstruye usando solo eventos con
+el mismo identificador de mensaje; no se reutiliza una respuesta anterior si el
+turno actual no produjo contenido visible.
+
+La lista permitida de herramientas es de solo lectura (`view`, `grep` y
+`glob`); no se ofrecen shell ni herramientas de edicion. La interfaz presenta
+un aviso y requiere confirmacion antes de habilitar el chat. Aun asi, los
+mensajes y el contenido del repositorio que lea el agente pueden procesarse por
+Copilot bajo las politicas de la cuenta del usuario. Usa datos sinteticos. La
+proteccion `ALLOW_REMOTE_ENDPOINT` solo aplica al flujo OpenAI-compatible del
+auditor runtime, no a esta integracion.
+El servidor Streamlit se configura para escuchar solo en `127.0.0.1`.
+La apariencia del workspace se centraliza en `src/assets/global.css`, y la
+skill `ui-ux-design-system` documenta cómo mantener los tokens y patrones
+accesibles de la interfaz. Los colores base de `.streamlit/config.toml` deben
+mantenerse alineados.
+
+Esta herramienta sirve para probar el agente de desarrollo. No ejecuta la
+conciliacion financiera, no consume automáticamente los fixtures ni constituye
+una interfaz de revision de reportes para analistas.
+
+La aplicación ofrece dos cargas separadas:
+
+- **Explicar archivo:** adjunta un `.txt` o `.json` de hasta 1 MiB desde el
+  icono de clip integrado en el compositor del chat. El archivo y la pregunta
+  se envían en el mismo turno; si solo se adjunta, se solicita una explicación
+  general. El contenido se valida y el backend lo trata como dato no confiable.
+- **Conciliar reportes:** carga un archivo para cada fuente sintética (banco,
+  pasarela y libro mayor), también `.txt` o `.json`, de hasta 1 MiB cada uno.
+  Los tres archivos deben contener JSON con un arreglo superior `records` y
+  cumplir el esquema actual validado por `src/orchestrator.py`. La UI muestra
+  cuántas fuentes faltan y solo habilita la acción con tres archivos y la
+  confirmación de privacidad. Si una fuente cambia después de conciliar, el
+  resultado anterior se descarta para evitar mostrar un reporte desactualizado.
+  Los archivos se escriben temporalmente. La UI presenta un PDF explicativo
+  con el significado de cada sección, los conteos y las referencias observadas;
+  el JSON detallado sigue disponible en una sección avanzada. Las explicaciones
+  del PDF son texto fijo de la aplicación, no una evaluación generada por el
+  modelo. Excepciones, alertas AML ilustrativas y posibles huérfanas siguen
+  requiriendo revisión humana. Las excepciones no resueltas pueden enviarse al
+  endpoint del orquestador, sujeto a `ALLOW_REMOTE_ENDPOINT`.
+
+El espacio de trabajo organiza el acceso y las skills en `Fuentes`, el diálogo
+en el panel central y el objetivo/límites en `Studio`. Desde `Fuentes` se puede
+activar o desactivar las skills de conciliación y UI/UX. Los controles se
+traducen a `disabled_skills` del Copilot SDK para nuevas sesiones y turnos.
+Esto controla la disponibilidad de las skills, pero no constituye evidencia
+de que una skill se haya utilizado en una respuesta. La conciliación conserva
+su vista aparte; sus métricas se acompañan de secciones expandibles con
+registros de origen, estados, motivos y detalles para revisión.
+
+El agente personalizado recibe instrucciones para limitarse al proyecto
+Agent_Banca y tratar los archivos como datos, no como instrucciones. Esta
+restricción es una guía para el modelo, no un filtro determinista que garantice
+que el modelo jamás responda fuera de tema.
+
 ## Fuentes de verdad y limites
 
 - El **codigo y las pruebas** determinan el comportamiento ejecutable actual.
@@ -94,8 +168,9 @@ si solo que no haya persistencia en logs.
 - El objetivo del producto incluye extractos del banco central, pero todavia
   no se especifican institucion, formato externo, reglas contables aprobadas,
   volumen objetivo, controles productivos ni criterios completos de aceptacion.
-- No existe interfaz de analista ni gestion de casos implementada. El reporte
-  JSON requiere revision posterior.
+- No existe interfaz para revisar reportes de conciliacion ni gestion de casos
+  implementada. El reporte JSON requiere revision posterior; la interfaz
+  Streamlit solo permite probar el agente de desarrollo.
 
 No se deben confundir los prompts runtime de `agent_config/` con la
 configuracion de Copilot en `.github/`, ni describir el PoC como sistema de
