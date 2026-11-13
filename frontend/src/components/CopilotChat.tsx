@@ -20,6 +20,7 @@ import {
   listCopilotSessions,
   createCopilotSession,
   sendChatMessage,
+  fetchCopilotAuth,
 } from '../services/api'
 
 const SKILL_OPTIONS = [
@@ -57,6 +58,7 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({ health }) => {
   const [attachment, setAttachment] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [authStatus, setAuthStatus] = useState<{ is_authenticated: boolean; login: string | null } | null>(null)
 
   const [activeSkills, setActiveSkills] = useState<string[]>(
     () => SKILL_OPTIONS.map(({ id }) => id)
@@ -64,6 +66,15 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({ health }) => {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const checkAuth = async () => {
+    try {
+      const res = await fetchCopilotAuth()
+      setAuthStatus(res)
+    } catch {
+      setAuthStatus({ is_authenticated: false, login: null })
+    }
+  }
 
   const toggleSkill = (skillId: string) => {
     setActiveSkills((currentSkills) =>
@@ -73,8 +84,9 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({ health }) => {
     )
   }
 
-  // Load sessions
+  // Load sessions and auth
   useEffect(() => {
+    checkAuth()
     loadSessions()
   }, [])
 
@@ -255,6 +267,27 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({ health }) => {
 
       {/* Main Chat Stream */}
       <div className="flex-1 flex flex-col justify-between bg-white dark:bg-slate-900">
+        {/* Auth notice banner */}
+        {authStatus && !authStatus.is_authenticated && (
+          <div className="mx-4 mt-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300 flex items-start justify-between gap-3 shadow-xs">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-[11px]">Copilot CLI no autenticado</p>
+                <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">
+                  Para habilitar respuestas en vivo, ejecuta <code className="px-1 py-0.5 rounded bg-amber-200/60 dark:bg-amber-900 font-mono text-[10px]">copilot</code> o <code className="px-1 py-0.5 rounded bg-amber-200/60 dark:bg-amber-900 font-mono text-[10px]">gh auth login</code> en una terminal.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={checkAuth}
+              className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-amber-200/80 dark:bg-amber-800 hover:bg-amber-300 dark:hover:bg-amber-700 transition-colors shrink-0 cursor-pointer"
+            >
+              Comprobar
+            </button>
+          </div>
+        )}
+
         {/* Messages list */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
           {messages.length === 0 ? (
