@@ -138,12 +138,25 @@ class CopilotBackend:
         enabled_skills: Sequence[str] | None = None,
     ) -> str:
         async def operation(client: Any) -> str:
-            session = await client.create_session(
-                name=name,
-                client_name=CLIENT_NAME,
-                **self._session_options(enabled_skills),
-            )
-            return session.session_id
+            opts = self._session_options(enabled_skills)
+            try:
+                session = await client.create_session(
+                    name=name,
+                    client_name=CLIENT_NAME,
+                    **opts,
+                )
+                return session.session_id
+            except Exception as error:
+                if "Custom agent" in str(error) and "not found" in str(error):
+                    fallback_opts = dict(opts)
+                    fallback_opts.pop("agent", None)
+                    session = await client.create_session(
+                        name=name,
+                        client_name=CLIENT_NAME,
+                        **fallback_opts,
+                    )
+                    return session.session_id
+                raise
 
         return self._run(operation)
 
@@ -155,11 +168,24 @@ class CopilotBackend:
     ) -> list[dict[str, str]]:
         async def operation(client: Any) -> list[dict[str, str]]:
             await self._assert_owned_session(client, session_id)
-            session = await client.resume_session(
-                session_id,
-                client_name=CLIENT_NAME,
-                **self._session_options(enabled_skills),
-            )
+            opts = self._session_options(enabled_skills)
+            try:
+                session = await client.resume_session(
+                    session_id,
+                    client_name=CLIENT_NAME,
+                    **opts,
+                )
+            except Exception as error:
+                if "Custom agent" in str(error) and "not found" in str(error):
+                    fallback_opts = dict(opts)
+                    fallback_opts.pop("agent", None)
+                    session = await client.resume_session(
+                        session_id,
+                        client_name=CLIENT_NAME,
+                        **fallback_opts,
+                    )
+                else:
+                    raise
             try:
                 return self._messages_from_events(await session.get_events())
             finally:
@@ -241,11 +267,24 @@ class CopilotBackend:
             from copilot.session_events import AssistantMessageData
 
             await self._assert_owned_session(client, session_id)
-            session = await client.resume_session(
-                session_id,
-                client_name=CLIENT_NAME,
-                **self._session_options(enabled_skills),
-            )
+            opts = self._session_options(enabled_skills)
+            try:
+                session = await client.resume_session(
+                    session_id,
+                    client_name=CLIENT_NAME,
+                    **opts,
+                )
+            except Exception as error:
+                if "Custom agent" in str(error) and "not found" in str(error):
+                    fallback_opts = dict(opts)
+                    fallback_opts.pop("agent", None)
+                    session = await client.resume_session(
+                        session_id,
+                        client_name=CLIENT_NAME,
+                        **fallback_opts,
+                    )
+                else:
+                    raise
             try:
                 response = await session.send_and_wait(
                     prompt,
@@ -313,6 +352,22 @@ class CopilotBackend:
             disabled_skills = [
                 skill for skill in AVAILABLE_SKILLS if skill not in selected
             ]
+        agent_path = self.root_dir / ".github" / "agents" / "conciliacion-auditoria.agent.md"
+        custom_agents = []
+        if agent_path.exists():
+            try:
+                content = agent_path.read_text(encoding="utf-8")
+                custom_agents.append(
+                    {
+                        "name": AGENT_NAME,
+                        "display_name": AGENT_NAME,
+                        "description": "Ingenieria de conciliacion y auditoria contable",
+                        "prompt": content,
+                    }
+                )
+            except Exception:
+                pass
+
         options = {
             "agent": AGENT_NAME,
             "agent_directories": [str(self.root_dir / ".github" / "agents")],
@@ -322,6 +377,8 @@ class CopilotBackend:
             "working_directory": str(self.root_dir),
             "streaming": False,
         }
+        if custom_agents:
+            options["custom_agents"] = custom_agents
         if disabled_skills:
             options["disabled_skills"] = disabled_skills
         return options
