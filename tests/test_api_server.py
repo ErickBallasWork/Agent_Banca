@@ -1,5 +1,6 @@
 """Integration and unit tests for the Agent_Banca FastAPI backend server functions."""
 
+import asyncio
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
@@ -14,6 +15,7 @@ from src.api_server import (
     set_copilot_backend,
     get_auth_status,
     list_sessions,
+    chat_message,
 )
 from src.copilot_backend import CopilotAuthStatus, CopilotSessionInfo
 
@@ -77,6 +79,54 @@ class ApiServerTests(unittest.TestCase):
         sessions = list_sessions()
         self.assertEqual(len(sessions), 1)
         self.assertEqual(sessions[0].session_id, "test-session-123")
+
+    def test_chat_runs_sync_copilot_backend_outside_event_loop(self):
+        def send_message(**_kwargs):
+            try:
+                asyncio.get_running_loop()
+            except RuntimeError:
+                return "Respuesta de prueba"
+            raise AssertionError("El backend síncrono se ejecutó en el event loop")
+
+        self.mock_backend.send_message.side_effect = send_message
+
+        result = asyncio.run(
+            chat_message(
+                session_id="test-session-123",
+                message="Pregunta de prueba",
+                skills="reconciliation-engineering",
+                attachment=None,
+            )
+        )
+
+        self.assertEqual(result["assistant_content"], "Respuesta de prueba")
+
+    def test_chat_attachment_runs_sync_copilot_backend_outside_event_loop(self):
+        class TestAttachment:
+            filename = "referencia.txt"
+
+            async def read(self):
+                return b"contenido de referencia"
+
+        def send_file_message(**_kwargs):
+            try:
+                asyncio.get_running_loop()
+            except RuntimeError:
+                return "Explicación de prueba"
+            raise AssertionError("El backend síncrono se ejecutó en el event loop")
+
+        self.mock_backend.send_file_message.side_effect = send_file_message
+
+        result = asyncio.run(
+            chat_message(
+                session_id="test-session-123",
+                message="Explica el archivo",
+                skills="reconciliation-engineering",
+                attachment=TestAttachment(),
+            )
+        )
+
+        self.assertEqual(result["assistant_content"], "Explicación de prueba")
 
 
 if __name__ == "__main__":

@@ -97,7 +97,9 @@ repositorio y del contexto de Copilot siguen siendo `Agent_Banca`.
 La interfaz usa `src/copilot_backend.py` y el SDK oficial `github-copilot-sdk`.
 Comprueba la autenticacion de Copilot CLI sin recibir tokens del navegador,
 crea/lista/reanuda sesiones persistidas por el SDK, y carga el agente y skills
-del workspace. El modelo es el configurado por Copilot CLI; no es el modelo
+del workspace. En la API FastAPI, las operaciones síncronas de chat se ejecutan
+en un thread pool para no bloquear el event loop mientras el backend espera al
+SDK asíncrono. El modelo es el configurado por Copilot CLI; no es el modelo
 `OPENAI_MODEL` de la aplicacion ni implica que `llama3.1` se use en este chat.
 La respuesta de cada turno se obtiene del evento final devuelto por el SDK.
 Si el SDK divide la respuesta en partes, se reconstruye usando solo eventos con

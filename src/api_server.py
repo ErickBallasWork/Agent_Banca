@@ -18,6 +18,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
+from starlette.concurrency import run_in_threadpool
 
 # Ensure src directory is in sys.path
 SRC_DIR = Path(__file__).resolve().parent
@@ -372,7 +373,8 @@ async def chat_message(
                 attachment.filename or "file.json", content_bytes
             )
             question = message or "Explica de manera sencilla el propósito del archivo, sus secciones y campos."
-            answer = backend.send_file_message(
+            answer = await run_in_threadpool(
+                backend.send_file_message,
                 session_id=session_id,
                 prompt=question,
                 filename=attachment.filename or "archivo.json",
@@ -383,7 +385,8 @@ async def chat_message(
         else:
             if not message.strip():
                 raise HTTPException(status_code=400, detail="El mensaje no puede estar vacío.")
-            answer = backend.send_message(
+            answer = await run_in_threadpool(
+                backend.send_message,
                 session_id=session_id,
                 prompt=message,
                 enabled_skills=enabled_skills,
