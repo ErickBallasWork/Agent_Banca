@@ -22,6 +22,29 @@ import {
   sendChatMessage,
 } from '../services/api'
 
+const SKILL_OPTIONS = [
+  {
+    id: 'reconciliation-engineering',
+    label: 'Conciliación & Auditoría',
+    description: 'Reglas financieras PoC',
+  },
+  {
+    id: 'source-format-validation',
+    label: 'Fuentes y formatos',
+    description: 'Validación sin asumir formatos oficiales',
+  },
+  {
+    id: 'exception-evidence-analysis',
+    label: 'Excepciones y evidencia',
+    description: 'Hallazgos sustentados en registros de origen',
+  },
+  {
+    id: 'audit-reporting',
+    label: 'Reportes y trazabilidad',
+    description: 'Evidencia verificable para revisión analista',
+  },
+] as const
+
 interface CopilotChatProps {
   health: SystemHealth | null
 }
@@ -35,17 +58,20 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({ health }) => {
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
-  // Skill toggles
-  const [skillReconciliation, setSkillReconciliation] = useState(true)
-  const [skillUiUx, setSkillUiUx] = useState(true)
+  const [activeSkills, setActiveSkills] = useState<string[]>(
+    () => SKILL_OPTIONS.map(({ id }) => id)
+  )
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const activeSkills = [
-    ...(skillReconciliation ? ['reconciliation-engineering'] : []),
-    ...(skillUiUx ? ['ui-ux-design-system'] : []),
-  ]
+  const toggleSkill = (skillId: string) => {
+    setActiveSkills((currentSkills) =>
+      currentSkills.includes(skillId)
+        ? currentSkills.filter((id) => id !== skillId)
+        : [...currentSkills, skillId]
+    )
+  }
 
   // Load sessions
   useEffect(() => {
@@ -191,39 +217,30 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({ health }) => {
               Skills Habilitadas
             </h5>
 
-            <div
-              onClick={() => setSkillReconciliation(!skillReconciliation)}
-              className="flex items-center justify-between p-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer text-xs"
-            >
-              <div>
-                <span className="font-semibold block text-slate-800 dark:text-slate-200">
-                  Conciliación & Auditoría
-                </span>
-                <span className="text-[10px] text-slate-400">Reglas financieras PoC</span>
-              </div>
-              {skillReconciliation ? (
-                <ToggleRight className="h-5 w-5 text-blue-600" />
-              ) : (
-                <ToggleLeft className="h-5 w-5 text-slate-400" />
-              )}
-            </div>
-
-            <div
-              onClick={() => setSkillUiUx(!skillUiUx)}
-              className="flex items-center justify-between p-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer text-xs"
-            >
-              <div>
-                <span className="font-semibold block text-slate-800 dark:text-slate-200">
-                  Diseño UI/UX FinTech
-                </span>
-                <span className="text-[10px] text-slate-400">Tokens y accesibilidad</span>
-              </div>
-              {skillUiUx ? (
-                <ToggleRight className="h-5 w-5 text-blue-600" />
-              ) : (
-                <ToggleLeft className="h-5 w-5 text-slate-400" />
-              )}
-            </div>
+            {SKILL_OPTIONS.map(({ id, label, description }) => {
+              const isEnabled = activeSkills.includes(id)
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={isEnabled}
+                  onClick={() => toggleSkill(id)}
+                  className="flex w-full items-center justify-between p-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer text-left text-xs"
+                >
+                  <span>
+                    <span className="font-semibold block text-slate-800 dark:text-slate-200">
+                      {label}
+                    </span>
+                    <span className="text-[10px] text-slate-400">{description}</span>
+                  </span>
+                  {isEnabled ? (
+                    <ToggleRight className="h-5 w-5 text-blue-600" />
+                  ) : (
+                    <ToggleLeft className="h-5 w-5 text-slate-400" />
+                  )}
+                </button>
+              )
+            })}
           </div>
         </div>
 

@@ -58,6 +58,17 @@ When changing the runtime auditor's context, update the relevant
    that remain unconfirmed. Never claim the full product objective or
    production readiness based on a high-level description alone.
 
+## Focused skills
+
+Load the relevant focused skill in addition to this general workflow:
+
+- [Source format validation](../source-format-validation/SKILL.md) for source
+  schemas, input validation, and prospective adapters.
+- [Exception evidence analysis](../exception-evidence-analysis/SKILL.md) for
+  evidence-backed discrepancies, candidates, and possible orphans.
+- [Audit reporting](../audit-reporting/SKILL.md) for report contracts and
+  source traceability.
+
 ## Questions to resolve when relevant
 
 Consult the unresolved items in `CONTEXT.md` first; do not ask the user to

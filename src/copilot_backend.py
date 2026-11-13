@@ -15,7 +15,9 @@ CLIENT_NAME = "agent-banca-copilot-web"
 READ_ONLY_TOOLS = ("view", "grep", "glob")
 AVAILABLE_SKILLS = (
     "reconciliation-engineering",
-    "ui-ux-design-system",
+    "source-format-validation",
+    "exception-evidence-analysis",
+    "audit-reporting",
 )
 REQUEST_TIMEOUT_SECONDS = 120
 FINAL_ASSISTANT_PHASES = (None, "final", "final_answer")
@@ -340,18 +342,17 @@ class CopilotBackend:
         self,
         enabled_skills: Sequence[str] | None = None,
     ) -> dict[str, Any]:
-        if enabled_skills is None:
-            disabled_skills: list[str] = []
-        else:
+        disabled_skills = ["ui-ux-design-system"]
+        if enabled_skills is not None:
             selected = set(enabled_skills)
             unknown = selected.difference(AVAILABLE_SKILLS)
             if unknown:
                 raise CopilotBackendError(
                     "Skills no reconocidas: " + ", ".join(sorted(unknown))
                 )
-            disabled_skills = [
+            disabled_skills.extend(
                 skill for skill in AVAILABLE_SKILLS if skill not in selected
-            ]
+            )
         agent_path = self.root_dir / ".github" / "agents" / "conciliacion-auditoria.agent.md"
         custom_agents = []
         if agent_path.exists():

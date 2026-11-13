@@ -35,15 +35,17 @@ is not a production banking or AML decision system.
   defines the VS Code Copilot agent for reconciliation engineering; it is
   separate from the runtime auditor prompt in `agent_config/`.
 - `.github/skills/reconciliation-engineering/SKILL.md` is the workspace
-  Agent Skill for engineering tasks. VS Code discovers project skills from
-  `.github/skills/` and loads relevant skills on demand. It links this context,
-  the implementation, tests, and runtime model instructions; the latter are
-  not themselves Copilot Agent Skills.
+  general Agent Skill for engineering tasks. The workspace also provides
+  focused skills for source-format validation, evidence-based exception
+  analysis, and audit reporting. VS Code discovers project skills from
+  `.github/skills/` and loads relevant skills on demand. These are engineering
+  guidance, not new reconciliation rules or source-format support; runtime
+  model instructions in `agent_config/` are not Copilot Agent Skills.
 - `src/copilot_app.py` is a local Streamlit interface branded **Agent
   Concilation** for testing the custom VS Code Copilot agent.
   `src/copilot_backend.py` uses the official Copilot SDK
   for CLI-based authentication checks and persistent chat sessions; it loads
-  the agent and workspace skill from `.github/`. This test interface is
+  the agent and workspace skills from `.github/`. This test interface is
   separate from `src/orchestrator.py`, does not run reconciliation, and does
   not use `OPENAI_MODEL`, Ollama, or `ALLOW_REMOTE_ENDPOINT`. Chat replies are
   taken from the Copilot SDK's final response event; chunked replies are
@@ -61,17 +63,20 @@ is not a production banking or AML decision system.
   Unresolved records may be sent to the configured OpenAI-compatible endpoint
   under the existing `ALLOW_REMOTE_ENDPOINT` guard.
 - The Copilot chat accepts a single `.txt` or `.json` attachment directly in
-  the chat composer. Users can toggle the two workspace skills; the SDK passes
-  unchecked skills through `disabled_skills` when creating or resuming chat
-  turns. Toggle state controls skill availability, not evidence that a skill
-  was actually activated for a response.
+  the chat composer. Users can toggle the general reconciliation-engineering
+  skill and the focused source-format-validation,
+  exception-evidence-analysis, and audit-reporting skills. The UI/UX skill
+  remains available for development guidance but is disabled in application
+  chat sessions. Toggle state controls skill availability, not evidence that
+  a skill was actually activated for a response.
 - The Streamlit workspace presents a `Fuentes` panel for Copilot connection,
   sessions, and skill controls, a central conversation with an attachment
   composer, and a `Studio` panel that explains the product goal and PoC limits.
   Reconciliation remains a separate `Conciliar reportes` view.
-- The Streamlit UI uses the workspace `ui-ux-design-system` skill and
-  `src/assets/global.css` as its centralized visual-token and component-style
-  source. The base colors in `.streamlit/config.toml` align with these tokens.
+- The Streamlit UI follows the workspace `ui-ux-design-system` development
+  skill and uses `src/assets/global.css` as its centralized visual-token and
+  component-style source. The base colors in `.streamlit/config.toml` align
+  with these tokens. This development skill is not exposed in application chat.
 - Copilot chat requests include a project-scope instruction and uploaded file
   contents are identified as untrusted reference data. This guides the model
   to stay within Agent_Banca topics but is not a deterministic topic filter.

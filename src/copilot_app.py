@@ -34,10 +34,22 @@ SKILL_CONTROLS = (
         "skill_reconciliation_enabled",
     ),
     (
-        "ui-ux-design-system",
-        "Diseño de interfaz (UI/UX)",
-        "Guía visual para cambios de interfaz.",
-        "skill_uiux_enabled",
+        "source-format-validation",
+        "Fuentes y formatos",
+        "Revisa estructuras y validaciones sin asumir formatos oficiales.",
+        "skill_source_format_enabled",
+    ),
+    (
+        "exception-evidence-analysis",
+        "Excepciones y evidencia",
+        "Distingue discrepancias, candidatos y posibles huérfanos con evidencia.",
+        "skill_exception_evidence_enabled",
+    ),
+    (
+        "audit-reporting",
+        "Reportes y trazabilidad",
+        "Prioriza referencias de origen, evidencia y revisión analista.",
+        "skill_audit_reporting_enabled",
     ),
 )
 

@@ -20,6 +20,10 @@ Su contexto de proyecto se compone de:
 3. [`.github/skills/reconciliation-engineering/SKILL.md`](../.github/skills/reconciliation-engineering/SKILL.md):
    skill de VS Code descubierta en `.github/skills/` y cargada bajo demanda
    cuando es pertinente. El agente la instruye a cargar para tareas financieras.
+   Hay skills especializadas para [validar formatos de fuente](../.github/skills/source-format-validation/SKILL.md),
+   [analizar excepciones con evidencia](../.github/skills/exception-evidence-analysis/SKILL.md)
+   y [mejorar reportes con trazabilidad](../.github/skills/audit-reporting/SKILL.md);
+   tampoco añaden reglas financieras ni soporte de formatos por sí solas.
 4. [`CONTEXT.md`](../CONTEXT.md), codigo, pruebas, fixtures y documentos que el
    agente consulte al trabajar.
 
@@ -144,12 +148,14 @@ La aplicación ofrece dos cargas separadas:
   requiriendo revisión humana. Las excepciones no resueltas pueden enviarse al
   endpoint del orquestador, sujeto a `ALLOW_REMOTE_ENDPOINT`.
 
-El espacio de trabajo organiza el acceso y las skills en `Fuentes`, el diálogo
-en el panel central y el objetivo/límites en `Studio`. Desde `Fuentes` se puede
-activar o desactivar las skills de conciliación y UI/UX. Los controles se
-traducen a `disabled_skills` del Copilot SDK para nuevas sesiones y turnos.
-Esto controla la disponibilidad de las skills, pero no constituye evidencia
-de que una skill se haya utilizado en una respuesta. La conciliación conserva
+El espacio de trabajo organiza el acceso y las cuatro skills del asistente en
+`Fuentes`, el diálogo en el panel central y el objetivo/límites en `Studio`.
+Desde `Fuentes` se pueden activar o desactivar las skills de conciliación,
+formatos, evidencia de excepciones y reportes. La skill de UI/UX se conserva
+para desarrollo, pero se deshabilita en sesiones de chat de la aplicación. Los
+controles se traducen a `disabled_skills` del Copilot SDK para nuevas sesiones
+y turnos. Esto controla la disponibilidad de las skills, pero no constituye
+evidencia de que se hayan utilizado en una respuesta. La conciliación conserva
 su vista aparte; sus métricas se acompañan de secciones expandibles con
 registros de origen, estados, motivos y detalles para revisión.
 

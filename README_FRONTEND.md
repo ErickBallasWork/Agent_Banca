@@ -36,7 +36,7 @@ Abre tu navegador en: `http://localhost:5173`
 3. **KPI Cards con Tokens Semánticos**: Métricas de Coincidencias Exactas, Tarifas (Fuzzy Fee), Excepciones, Huérfanas y Alertas AML.
 4. **Data Grid Financiero**: Búsqueda en tiempo real por ID de payout o descripción, filtros por severidad y categorías.
 5. **Drawer Lateral de Auditoría (Slide-over)**: Inspección granular de cada transacción, reglas aplicadas y visualizador JSON con copia rápida.
-6. **Copilot FinTech Studio**: Asistente con prompts sugeridos, selector de skills (`Conciliación & Auditoría`, `Diseño UI/UX`) y soporte para adjuntar archivos.
+6. **Copilot FinTech Studio**: Asistente con prompts sugeridos, skills de `Conciliación & Auditoría`, `Fuentes y formatos`, `Excepciones y evidencia` y `Reportes y trazabilidad`, además de soporte para adjuntar archivos. La guía de UI/UX se conserva para desarrollo, pero no se ofrece como skill del chat.
 7. **Exportación Ejecutiva**: Descarga directa de informes explicados en formato PDF y exportación técnica en JSON.
 8. **Modo Claro / Oscuro (Dark Mode)**: Diseñado según estándares WCAG 2.1 AA con números tabulares (`tabular-nums`) para evitar descuadres en balances financieros.
 

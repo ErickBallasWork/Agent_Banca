@@ -22,6 +22,13 @@ formatos oficiales o grandes volumenes.
    [`reconciliation-engineering`](../skills/reconciliation-engineering/SKILL.md)
    y sigue su flujo. La skill enlaza el contexto del proyecto, las reglas
    actuales, los fixtures y las pruebas pertinentes.
+   Para tareas enfocadas, carga además la skill adecuada:
+   [`source-format-validation`](../skills/source-format-validation/SKILL.md)
+   para esquemas y validaciones de fuentes,
+   [`exception-evidence-analysis`](../skills/exception-evidence-analysis/SKILL.md)
+   para discrepancias y evidencia, o
+   [`audit-reporting`](../skills/audit-reporting/SKILL.md) para reportes y
+   trazabilidad.
 2. Sigue siempre las instrucciones generales de
    [`copilot-instructions.md`](../copilot-instructions.md) y revisa
    [`CONTEXT.md`](../../CONTEXT.md) antes de proponer cambios funcionales.

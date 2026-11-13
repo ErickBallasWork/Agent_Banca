@@ -27,6 +27,7 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from copilot_backend import (
+    AVAILABLE_SKILLS,
     CopilotAuthStatus,
     CopilotBackend,
     CopilotBackendError,
@@ -87,10 +88,7 @@ class HealthResponse(BaseModel):
 class CreateSessionRequest(BaseModel):
     name: str | None = None
     enabled_skills: list[str] = Field(
-        default_factory=lambda: [
-            "reconciliation-engineering",
-            "ui-ux-design-system",
-        ]
+        default_factory=lambda: list(AVAILABLE_SKILLS)
     )
 
 
@@ -98,10 +96,7 @@ class ChatMessageRequest(BaseModel):
     session_id: str
     message: str
     enabled_skills: list[str] = Field(
-        default_factory=lambda: [
-            "reconciliation-engineering",
-            "ui-ux-design-system",
-        ]
+        default_factory=lambda: list(AVAILABLE_SKILLS)
     )
 
 
@@ -341,10 +336,7 @@ def get_session_messages(
     skills: str | None = None,
 ) -> list[dict[str, str]]:
     backend = get_copilot_backend()
-    enabled_skills = skills.split(",") if skills else [
-        "reconciliation-engineering",
-        "ui-ux-design-system",
-    ]
+    enabled_skills = skills.split(",") if skills else list(AVAILABLE_SKILLS)
     try:
         return backend.load_session(session_id, enabled_skills=enabled_skills)
     except CopilotBackendError as err:
@@ -355,7 +347,7 @@ def get_session_messages(
 async def chat_message(
     session_id: str = Form(...),
     message: str = Form(...),
-    skills: str = Form("reconciliation-engineering,ui-ux-design-system"),
+    skills: str = Form(",".join(AVAILABLE_SKILLS)),
     attachment: UploadFile | None = File(None),
 ) -> dict[str, str]:
     backend = get_copilot_backend()

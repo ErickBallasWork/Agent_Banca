@@ -174,8 +174,14 @@ class CopilotAppTests(unittest.TestCase):
         self.assertTrue(
             any(item.label == "Conciliación y auditoría" for item in app.toggle)
         )
-        self.assertTrue(
-            any(item.label == "Diseño de interfaz (UI/UX)" for item in app.toggle)
+        self.assertEqual(
+            {item.label for item in app.toggle},
+            {
+                "Conciliación y auditoría",
+                "Fuentes y formatos",
+                "Excepciones y evidencia",
+                "Reportes y trazabilidad",
+            },
         )
 
 

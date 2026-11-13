@@ -1,12 +1,14 @@
 import unittest
 from datetime import datetime, timezone
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 from copilot.session_events import AssistantMessageData, UserMessageData
 
 from src.copilot_backend import (
     AGENT_NAME,
+    AVAILABLE_SKILLS,
     CLIENT_NAME,
     READ_ONLY_TOOLS,
     CopilotBackend,
@@ -150,6 +152,10 @@ class CopilotBackendTests(unittest.TestCase):
         self.assertEqual(options["client_name"], CLIENT_NAME)
         self.assertEqual(options["available_tools"], list(READ_ONLY_TOOLS))
         self.assertEqual(
+            options["disabled_skills"],
+            ["ui-ux-design-system"],
+        )
+        self.assertEqual(
             options["agent_directories"],
             ["/tmp/agent-banca-test/.github/agents"],
         )
@@ -158,25 +164,43 @@ class CopilotBackendTests(unittest.TestCase):
             ["/tmp/agent-banca-test/.github/skills"],
         )
 
-    def test_selected_skills_disable_unselected_workspace_skills(self):
-        self.backend.create_session(
-            enabled_skills=["ui-ux-design-system"]
-        )
+    def test_available_skills_have_matching_workspace_skill_files(self):
+        skill_root = Path(__file__).resolve().parents[1] / ".github" / "skills"
 
+        for skill_id in AVAILABLE_SKILLS:
+            skill_file = skill_root / skill_id / "SKILL.md"
+            self.assertTrue(skill_file.is_file(), skill_id)
+            frontmatter = skill_file.read_text(encoding="utf-8").split("---", 2)[1]
+            self.assertIn(f"name: {skill_id}\n", frontmatter)
+
+    def test_selected_skills_disable_unselected_workspace_skills(self):
+        self.backend.create_session(enabled_skills=list(AVAILABLE_SKILLS))
         self.assertEqual(
             self.client.created_options["disabled_skills"],
-            ["reconciliation-engineering"],
+            ["ui-ux-design-system"],
         )
 
+        selected_skills = [
+            "reconciliation-engineering",
+            "source-format-validation",
+        ]
         self.backend.send_message(
             "web-session",
             "Pregunta",
-            enabled_skills=["reconciliation-engineering"],
+            enabled_skills=selected_skills,
         )
         self.assertEqual(
             self.client.resumed_options[1]["disabled_skills"],
-            ["ui-ux-design-system"],
+            [
+                "ui-ux-design-system",
+                "exception-evidence-analysis",
+                "audit-reporting",
+            ],
         )
+
+    def test_ui_ux_skill_is_not_available_to_application_chat(self):
+        with self.assertRaisesRegex(CopilotBackendError, "Skills no reconocidas"):
+            self.backend.create_session(enabled_skills=["ui-ux-design-system"])
 
     def test_cannot_resume_a_session_created_by_another_client(self):
         with self.assertRaisesRegex(CopilotBackendError, "no pertenece"):

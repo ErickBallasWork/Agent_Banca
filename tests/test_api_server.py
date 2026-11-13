@@ -7,6 +7,8 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 from src.api_server import (
+    ChatMessageRequest,
+    CreateSessionRequest,
     PDFGenerationRequest,
     generate_pdf,
     get_sample_fixtures,
@@ -17,7 +19,11 @@ from src.api_server import (
     list_sessions,
     chat_message,
 )
-from src.copilot_backend import CopilotAuthStatus, CopilotSessionInfo
+from src.copilot_backend import (
+    AVAILABLE_SKILLS,
+    CopilotAuthStatus,
+    CopilotSessionInfo,
+)
 
 
 class ApiServerTests(unittest.TestCase):
@@ -79,6 +85,19 @@ class ApiServerTests(unittest.TestCase):
         sessions = list_sessions()
         self.assertEqual(len(sessions), 1)
         self.assertEqual(sessions[0].session_id, "test-session-123")
+
+    def test_api_defaults_enable_all_selectable_skills(self):
+        self.assertEqual(
+            CreateSessionRequest().enabled_skills,
+            list(AVAILABLE_SKILLS),
+        )
+        self.assertEqual(
+            ChatMessageRequest(
+                session_id="test-session-123",
+                message="Pregunta de prueba",
+            ).enabled_skills,
+            list(AVAILABLE_SKILLS),
+        )
 
     def test_chat_runs_sync_copilot_backend_outside_event_loop(self):
         def send_message(**_kwargs):

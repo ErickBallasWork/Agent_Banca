@@ -9,6 +9,11 @@
   `reconciliation-engineering` de `.github/skills/`. Las skills se descubren
   desde esa ubicacion y se cargan bajo demanda; el agente debe invocarla en
   tareas pertinentes, no asumir que sus instrucciones ya estan en contexto.
+- Para tareas específicas de formatos de entrada, evidencia de excepciones o
+  reportes, carga respectivamente `source-format-validation`,
+  `exception-evidence-analysis` o `audit-reporting` desde `.github/skills/`.
+  Son guías de ingeniería: no habilitan formatos ni agregan reglas financieras
+  por sí mismas.
 - Para cambios de UI/UX, consulta la skill `ui-ux-design-system` de
   `.github/skills/` y centraliza los estilos del app Streamlit en
   `src/assets/global.css`.
